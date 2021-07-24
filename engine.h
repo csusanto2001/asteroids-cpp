@@ -7,6 +7,12 @@
 #define WINDOW_HEIGHT 600
 #define TIME_BETWEEN_FRAMES 1000.0/60.0
 
+#define clamp(x, lo, hi) x < lo ? lo : x > hi ? hi : x
+
+#include "asteroid.h"
+#include "projectile.h"
+#include "ship.h"
+
 /*
  * No description
  */
@@ -38,6 +44,7 @@ class Engine
         bool rightPressed;
         bool accelerationPressed;
         bool firePressed;
+        int projectileCooldown;
         
         // Game state tracker
         bool gameOver;

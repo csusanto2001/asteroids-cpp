@@ -1,11 +1,30 @@
 #include "engine.h" // class's header file
 
 #include <Windows.h>
+#include <graphics.h>
+#include <stdlib.h>
+#include <time.h>
 
 // class constructor
 Engine::Engine()
 {
-	// insert your code here
+	ship = new Ship();
+	noProjectiles = 0;
+	noAsteroids = 6;
+	for (int i = 0; i < noAsteroids; i++)
+	{
+        asteroids[i] = new Asteroid();
+    }
+    
+    lives = 3;
+    leftPressed = false;
+    rightPressed = false;
+    accelerationPressed = false;
+    firePressed = false;
+    projectileCooldown = 0;
+    gameOver = false;
+    
+    srand(time(0));
 }
 
 // class destructor
@@ -31,8 +50,8 @@ void Engine::update(double delta)
     shipAsteroidCollision();
 }
  
-void Engile::getInput()
-{                     
+void Engine::getInput()
+{                  
     // Get input.
     // Check if the keys are currently pressed; if yes, then
     // the corresponding value is set to true.
@@ -45,30 +64,35 @@ void Engile::getInput()
 void Engine::shipUpdateLogic(double delta)
 {
     // Ship controls
-    if (!ship->IsExploded())
+    if (!ship->isExploded())
     {
-        if (leftPressed) ship->ApplyLeftRotation(delta);
-        if (rightPressed) ship->ApplyRightRotation(delta);
-        if (accelerationPressed) ship->ApplyAcceleration(delta);
+        if (leftPressed) ship->applyLeftRotation(delta);
+        if (rightPressed) ship->applyRightRotation(delta);
+        if (accelerationPressed) ship->applyAcceleration(delta);
         if (firePressed) 
         {
             // To avoid having too many projectiles, the projectile
             // will only fire if there is less than 20
             if (noProjectiles < 20)
             {
-                Projectile* projectile = new Projectile(ship->GetPosition(), 
-                        ship->GetRotation());
-                projectiles[noProjectiles] = projectile;
-                noProjectiles++;
+                projectileCooldown++;
+                projectileCooldown = projectileCooldown % 10;
+                
+                if (projectileCooldown == 0) { 
+                    Projectile* projectile = new Projectile(ship->getPosition(), 
+                            ship->getRotation());
+                    projectiles[noProjectiles] = projectile;
+                    noProjectiles++;
+                }
             }
         }
     }
 
     // Ship logic
-    ship->Advance(delta);
-    if (ship->IsExploded() && ship->GetExplotionTime() > 0.5)
+    ship->advance(delta);
+    if (ship->isExploded() && ship->getExplosionTime() > 0.5)
     {
-        ship->Reset();
+        ship->reset();
         lives--;
         if (lives < 0)
         {
@@ -79,17 +103,17 @@ void Engine::shipUpdateLogic(double delta)
     }
 }
  
-void Engine::projectileUpdateLogic(double delta)
+void Engine::projectilesUpdateLogic(double delta)
 {   
     // Projectile logic
     for (int i = 0; i < noProjectiles; i++)
     {
         // Move projetiles
-        projectiles[i]->Advance(delta);
+        projectiles[i]->advance(delta);
         
         // Remove projectiles that are outside the screen
         // Also perform reindexing
-        if (projectiles[i]->IsOut())
+        if (projectiles[i]->isOut())
         {
             Projectile* projectile = projectiles[i];
             for (int j = i; j < noProjectiles - 1; j++)
@@ -102,13 +126,13 @@ void Engine::projectileUpdateLogic(double delta)
     }
 }
 
-void Engine::asteroidUpdateLogic()
+void Engine::asteroidsUpdateLogic(double delta)
 {    
     // Asteroid logic
     for (int i = 0; i < noAsteroids; i++)
     {
-        asteroids[i]->Advance(delta);
-        if (asteroids[i]->GetSize() == 0 && asteroids[i]->GetExplosionTime() > 0.5)
+        asteroids[i]->advance(delta);
+        if (asteroids[i]->getSize() == 0 && asteroids[i]->getExplosionTime() > 0.5)
         {
             // If the asteroid already exploded for 0.5 secs, remove it
             Asteroid* asteroid = asteroids[i];
@@ -138,8 +162,8 @@ void Engine::projectileAsteroidCollision()
             Projectile* projectile = projectiles[j];
             Asteroid* asteroid = asteroids[i];
             
-            double distance = (asteroid->GetPosition() - projectile->GetPosition()).length();
-            double size = asteroid->GetSize() * ASTEROID_SIZE_MULTIPLIER;
+            double distance = (asteroid->getPosition() - projectile->getPosition()).length();
+            double size = asteroid->getSize() * ASTEROID_SIZE_MULTIPLIER;
             
             // If they do not collide immediately go to next loop
             if (distance >= size) continue;
@@ -152,21 +176,21 @@ void Engine::projectileAsteroidCollision()
             noProjectiles--;
                 
             // Explode asteroid and create 2 new
-            if (asteroid->GetSize() > 1)
+            if (asteroid->getSize() > 1)
             {
-                Point2D currentSpeed = asteroid->GetSpeed();
+                Point2D currentSpeed = asteroid->getSpeed();
                 
                 // New asteroid 1
                 Point2D newSpeed1 = currentSpeed * 1.5;
-                Asteroid* newAsteroid1 = new Asteroid(asteroid->GetPosition(), 
-                        asteroid->GetSize()/2, newSpeed1);
+                Asteroid* newAsteroid1 = new Asteroid(asteroid->getPosition(), 
+                        asteroid->getSize()/2, newSpeed1);
                 asteroids[noAsteroids] = newAsteroid1;
                 noAsteroids++;
                 
                 // New asteroid 2
                 Point2D newSpeed2 = currentSpeed * -1.5;
-                Asteroid* newAsteroid2 = new Asteroid(asteroid->GetPosition(),
-                        asteroid->GetSize()/2, newSpeed2);
+                Asteroid* newAsteroid2 = new Asteroid(asteroid->getPosition(),
+                        asteroid->getSize()/2, newSpeed2);
                 asteroids[noAsteroids] = newAsteroid2;
                 noAsteroids++;
                 
@@ -180,7 +204,7 @@ void Engine::projectileAsteroidCollision()
             else
             {
                 // If asteroid is too small it explodes
-                asteroid->Explode();
+                asteroid->explode();
             }
             
             return; // We only need to check collision once, so
@@ -189,21 +213,21 @@ void Engine::projectileAsteroidCollision()
     }
 }
 
-Engine::shipAsteroidCollision()
+void Engine::shipAsteroidCollision()
 {
-    if (ship->IsExploded()) return;
+    if (ship->isExploded()) return;
     
     for (int i = 0; i < noAsteroids; i++)
     {
         Asteroid* asteroid = asteroids[i];
         
-        double distance = (asteroid->GetPosition() - ship->GetPosition()).length();
+        double distance = (asteroid->getPosition() - ship->getPosition()).length();
         // Asteroid size + ship size
-        double size = asteroid->GetSize() * ASTEROID_SIZE_MULTIPLIER + 5;
+        double size = asteroid->getSize() * ASTEROID_SIZE_MULTIPLIER + 5;
         
         if (distance < size)
         {
-            ship->Explode();
+            ship->explode();
             return;
         }
     }
@@ -220,16 +244,16 @@ void Engine::draw()
     }
     
     for (int i = 0; i < noProjectiles; i++)
-        projectiles[i]->Draw();
+        projectiles[i]->draw();
     
     if (!gameOver || gameWon)
     {
-        ship->Draw();
+        ship->draw();
     }
     
     for (int i = 0; i < noAsteroids; i++)
     {
-        asteroids[i]->Draw();
+        asteroids[i]->draw();
     }
     
     // Game over state
@@ -248,7 +272,10 @@ void Engine::draw()
         }
     }
     
-    swapbuffers();
+    int oldv = getvisualpage( );
+    int olda = getactivepage( );
+    setvisualpage(olda);
+    setactivepage(oldv);
 }
 
 void Engine::drawLive(int x, int y)

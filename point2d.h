@@ -15,17 +15,22 @@ class Point2D
         double y;
            
 		// class constructor
-		Point2D() : x(0), y(0) {}
+		Point2D() : x(0.0), y(0.0) {}
 		Point2D(double _x, double _y) : x(_x), y(_y) {}
-		Point2D(Point2D other) : x(other.x), y(other.y) {}
+		Point2D(const Point2D& other) : x(other.x), y(other.y) {}
 		// class destructor
-		~Point2D();
+		~Point2D() {}
 		
 		double length() { return hypot(x, y); }
 		Point2D operator+(Point2D v) { return Point2D(x + v.x, y + v.y); }
 		Point2D operator-(Point2D v) { return Point2D(x - v.x, y - v.y); }
 		Point2D operator*(double f) { return Point2D(x * f, y * f); }
-		Point2D operatir/(double f) { return Point2D(x / f, y / f); }
+		Point2D operator/(double f) { return Point2D(x / f, y / f); }
+		void operator=(Point2D v) { x = v.x; y = v.y; }
+		void operator+=(Point2D v) { x += v.x; y += v.y; }
+		void operator-=(Point2D v) { x -= v.x; y -= v.y; }
+		void operator*=(double f) { x *= f; y *= f; }
+		void operator/=(double f) { x /= f; y /= f; }
 };
 
 #endif // POINT2D_H
